@@ -1,98 +1,125 @@
-#############################################
-# CT-Ping.tcl 0.1                 #09/02/21 #
-#############################################
-#Author  ComputerTech                       #
-#IRC     Irc.DareNet.Org  #ComputerTech     #
-#Email   ComputerTech@DareNet.Org           #
-#GitHub  https://github.com/computertech312 #
-#################################################################################################################################################################
-# Start Of Configuration #
+##################################################################################################
+# CT-ping.tcl                                                                                    #
+##################################################################################################
+# Author    ComputerTech                                                                         #                                                      #
+# Email     ComputerTech312@Gmail.com                                                            #
+# GitHub    https://github.com/computertech312                                                   #
+# Version   0.2                                                                                  #
+# Released  15/04/2021                                                                           #
+##################################################################################################
+#                                                                                                #
+# Description:                                                                                   #
+#                                                                                                #
+#               An Elaborate Public and Message Command Script.                                  #                                                               #
+#                                                                                                #
+#                                                                                                #
+# Credits:                                                                                       #
+#                                                                                                #
+#               Special thanks to Suntop, Sir_Fz, Spyda, BdS, CrazyCat                           #
+#               and many others for all of the help.                                             #
+#                                                                                                #
+# History:                                                                                       #
+#                                                                                                #
+#               - 0.2: Added namespace.                                                          #
+#               - 0.1: First release.                                                            #
+#                                                                                                #
+##################################################################################################
+namespace eval CTcommands {
+variable ctp
+
 ##########################
-#Set trigger of the Command.
+# Start Of Configuration #                                                                     
+#________________________#
 
-set ctping(trig) "@"
+##################
+# Set trigger of the commands.
+##
+set ctp(trig) "!ping !p"
+
+
+###################
+# Set flag for Commands.
+##
+# Owner     = n
+# Master    = m
+# Op        = o
+# Halfop    = h
+# Voice     = v
+# Friend    = f
+# Everyone  = -   
+##          
+set ctp(flag) "omn"
 
 
 ##################
-#Set flag for Commands.
+# Set to use Notice Or Privmsg for Output of Commands.
 ##
-#Owner     = n
-#Master    = m
-#Op        = o
-#Voice     = v
-#Friend    = f
-#Everyone  = -
-set ctping(flag) "-|-"
+# 1 = Notice
+# 2 = Privmsg
+# 3 = Channel
+##
+set ctp(msg) "1"
 
 
 ##################
-#Set to use Notice Or Channel for Output of Command
+# Set Colour for output.
 ##
-#1 = Notice
-#0 = Channel
-
-set ctping(msg) "0"
-
-
-##################
-#Set Colour of Output
+# Black       = 0
+# Black       = 1
+# Dark Blue   = 2
+# Green       = 3
+# Red         = 4
+# Brown       = 5
+# Purple      = 6
+# Orange      = 7
+# Yellow      = 8
+# Light Green = 9
+# DarkCyan    = 10
+# LightCyan   = 11
+# LightBlue   = 12
+# Pink        = 13
+# Dark Grey   = 14
+# Light Grey  = 15
 ##
-#White       = 0
-#Black       = 1
-#Dark Blue   = 2
-#Green       = 3
-#Red         = 4
-#Brown       = 5
-#Purple      = 6
-#Orange      = 7
-#Yellow      = 8
-#Light Green = 9
-#DarkCyan    = 10
-#LightCyan   = 11
-#LightBlue   = 12
-#Pink        = 13
-#Dark Grey   = 14
-#Light Grey  = 15
-
-
-set colo "3"
-
-
-##################
-#Set Time per usage of Command
-##
-
-set ctping(time) "5"
-
+set ctp(col) "3"
 
 ########################
 # End Of Configuration #
-#################################################################################################################################################################
+#______________________#
 
-bind pub $ctping(flag) $ctping(trig)ping ct:pub:ping
-bind ctcr - PING ct:pingr
+##################################################################################################
 
+foreach ctp(word) $ctp(trig) {bind PUBM $ctp(flag) "$ctp(word)" [namespace current]::pingi}
+ bind CTCR - PING [namespace current]::pingr
 
-proc ct:pub:ping {nick host hand chan text} {
-global pingchan pingwho
-	set pingwho [lindex [split $text] 0]
-	if {$pingwho == ""} {set pingwho $nick}
-	putquick "PRIVMSG $pingwho :\001PING [clock clicks -milliseconds]\001"
-	set pingchan($pingwho) $chan
+proc pingi {nick host hand chan text} {
+	 global ping
+    set ping(who) [lindex [split $text] 0]
+  if {$ping(who) == ""} {set ping(who) $nick}
+   putserv "PRIVMSG $ping(who) :\001PING [clock clicks -milliseconds]\001"
+    set pingchan($nick) $chan
+    utimer 20 {time:out $nick $text}
 }
-proc ct:pingr {nick uhost hand dest keyword text} {
-	global pingchan ctping colo pingwho
-	set time [expr {([clock clicks -milliseconds] - $text) / 1000.000}]
-	set char "="
-	if {[expr {round($time / 0.5)}] > 10} {set red 10} else {set red [expr {round($time / 0.5)}]}
-	set green [expr {10 - $red}]
-	set output \00303[string repeat $char $green]\003\00304[string repeat $char $red]\003
-	if {($ctping(msg) == "0")} {
-		putquick "PRIVMSG $pingchan($pingwho) :\[\0030${colo}PING\003\] reply from $pingwho: \[\0030${colo}$time\003\] seconds $output"
-	} else {
-		putquick "NOTICE $nick :\[\0030${colo}PING\003\] reply from $pingwho: \[\0030${colo}$time\003\] seconds"
-	}
-unset pingchan
+proc pingr {nick host hand dest key text} {
+	 global ping pingchan
+    set chan $pingchan($nick)
+    set ping(time) [expr {([clock clicks -milliseconds] - $text) / 1000.000}]
+        switch -- $ping(msg) {
+        "0" {set ping(output) "NOTICE $nick"}
+        "1" {set ping(output) "PRIVMSG $nick"}
+        "2" {set ping(output) "PRIVMSG $pingchan($nick)"}
+        }
+        set ctp($nick) 1
+    putserv "$ping(output) :\[0030{$ping(col)}PING\003\] reply from $ping(who): \[0030${ping(col)}$ping(time)\003\] seconds"
+        unset pingchan($nick)
 }
-
-#################################################################################################################################################################
+proc time:out {nick text} {
+variable ping
+ if {![info exists ctp($nick)]} {
+ 	  putserv "$ping(output) :\00304Error\003 Timeout trying to ping $ping(who)"
+ } else {
+ 	  unset ping($nick)
+   }
+  }
+}
+##################################################################################################
